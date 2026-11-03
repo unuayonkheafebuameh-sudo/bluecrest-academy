@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Portal | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Student Portal</a><span><span class="who" id="who"></span> <button type="button" id="out">Log out</button></span></div></header>
+
+<main class="wrap dash">
+  <section class="welcome"><h1 id="hi"></h1><p id="sub"></p></section>
+
+  <section class="card"><h3>My profile</h3><div class="pf" id="pf"></div></section>
+
+  <section class="sec2"><h3>My school</h3><div class="tiles" id="tiles"></div></section>
+
+  <div class="grid two">
+    <section class="card"><h3>Announcements</h3><div id="ann"></div></section>
+    <section class="card"><h3>Notifications</h3><div id="not"></div></section>
+  </div>
+</main>
+
+<script src="js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+  var cur = BIA.auth.require('student'); if (!cur) return;
+  var s = BIA.auth.student(cur.loginId);
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+  $('who').textContent = s.name;
+  $('hi').textContent = 'Welcome, ' + s.name.split(' ')[0];
+  $('sub').textContent = s.cls + ' · ' + s.session + ' session';
+  $('out').onclick = BIA.auth.logout;
+
+  var pf = [['Full name', s.name], ['Admission no.', s.admissionNo], ['Class', s.cls], ['Session', s.session], ['Gender', s.gender], ['Date of birth', new Date(s.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })]];
+  $('pf').innerHTML = pf.map(function (x) { return '<div><span>' + x[0] + '</span>' + esc(x[1]) + '</div>'; }).join('');
+
+  var tiles = [['Results', 5], ['Timetable', 6], ['Syllabus', 6], ['Fees and payments', 4], ['Transport', 4], ['Assignments', 7], ['Learning materials', 7], ['Attendance', 7], ['School calendar', 7], ['Complaints', 8]];
+  $('tiles').innerHTML = tiles.map(function (t) { return '<div class="tile"><b>' + t[0] + '</b><small>Coming in Phase ' + t[1] + '</small></div>'; }).join('');
+
+  function list(el, items) {
+    $(el).innerHTML = items.length ? items.map(function (i) { return '<p style="margin-bottom:10px"><b>' + esc(i[0]) + '</b><br><small style="color:var(--mute)">' + esc(i[1]) + '</small></p>'; }).join('') : '<p class="empty">Nothing here yet.</p>';
+  }
+  list('ann', [['First term examinations timetable released', '28 Oct 2026'], ['Inter-house sports day', '14 Nov 2026']]);
+  list('not', [['Welcome to the BlueCrest portal', 'Your account is ready.']]);
+})();
+</script>
+</body>
+</html>
