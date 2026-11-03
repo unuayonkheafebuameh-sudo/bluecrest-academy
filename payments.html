@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fees and Transport | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+.sim{background:#FEF0C7;border:1px solid #F5C451;color:#7A4B00;border-radius:12px;padding:10px 14px;font-size:.88rem;margin-bottom:16px}
+.sums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.sums div{background:var(--soft);border-radius:14px;padding:12px}.sums b{display:block;font-size:1.1rem}.sums span{font-size:.78rem;color:var(--mute)}
+.li{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.li input{width:auto;margin:0}.li .n{flex:1}.li small{display:block;color:var(--mute)}
+.ok{color:#067647;font-weight:700}
+.ov{position:fixed;inset:0;background:rgba(7,26,69,.55);display:grid;place-items:center;padding:16px;z-index:90}
+.ov[hidden]{display:none}.box{background:#fff;border-radius:20px;padding:24px;max-width:420px;width:100%}
+select{display:block;width:100%;margin-top:5px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Fees and Transport</a><span><a id="back" href="#" class="who">Dashboard</a> <button type="button" id="out">Log out</button></span></div></header>
+
+<main class="wrap dash">
+  <div class="sim"><b>Demo mode.</b> Payments here are simulated. No money is taken and receipts are marked as demo receipts.</div>
+  <div class="kids" id="kids"></div>
+  <div class="tabs"><button type="button" data-t="fees" class="on">School fees</button><button type="button" data-t="transport">Transport</button><button type="button" data-t="history">History</button></div>
+  <section class="card" id="view"></section>
+</main>
+
+<div class="ov" id="ov" hidden><div class="box" id="box" role="dialog" aria-modal="true"></div></div>
+
+<script src="js/auth.js"></script>
+<script src="js/pay.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, P = BIA.pay, cur = A.current();
+  if (!cur || (cur.role !== 'student' && cur.role !== 'parent')) { location.replace('login.html'); return; }
+  var kids = cur.role === 'student' ? [A.student(cur.loginId)] : A.children(cur.loginId);
+  var sel = kids[0] && kids[0].admissionNo, tab = (location.hash || '#fees').slice(1);
+  if (['fees', 'transport', 'history'].indexOf(tab) < 0) tab = 'fees';
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  function dt(i) { return new Date(i).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  $('back').href = cur.role + '-portal.html'; $('out').onclick = A.logout;
+
+  function child() { return A.student(sel); }
+  function drawKids() {
+    $('kids').innerHTML = cur.role === 'parent' ? kids.map(function (k) { return '<button type="button" data-a="' + esc(k.admissionNo) + '" class="' + (k.admissionNo === sel ? 'on' : '') + '">' + esc(k.name) + '</button>'; }).join('') : '';
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === tab); });
+  }
+  $('kids').onclick = function (e) { if (e.target.dataset.a) { sel = e.target.dataset.a; draw(); } };
+  document.querySelector('.tabs').onclick = function (e) { if (e.target.dataset.t) { tab = e.target.dataset.t; history.replaceState(null, '', '#' + tab); draw(); } };
+
+  function sums(items) {
+    var due = 0, paid = 0; items.forEach(function (i) { due += i.due; paid += i.paid; });
+    return '<div class="sums"><div><b>' + P.naira(due) + '</b><span>Total due</span></div><div><b>' + P.naira(paid) + '</b><span>Paid</span></div><div><b>' + P.naira(due - paid) + '</b><span>Outstanding</span></div></div>';
+  }
+  function fees() {
+    var c = child(), items = P.statement(c.admissionNo, c.cls), out = items.filter(function (i) { return i.balance > 0; });
+    return '<h3>' + esc(P.TERM) + ' · ' + esc(c.cls) + '</h3><p class="sub">Payment deadline: <b>' + dt(P.DEADLINE) + '</b></p>' + sums(items) +
+      items.map(function (i, x) {
+        return '<label class="li">' + (i.balance ? '<input type="checkbox" data-i="' + x + '" checked>' : '<span class="ok">✓</span>') + '<span class="n">' + esc(i.name) + '<small>' + (i.balance ? 'Balance ' + P.naira(i.balance) : 'Paid') + '</small></span><b>' + P.naira(i.due) + '</b></label>';
+      }).join('') + (out.length ? '<p style="margin-top:16px"><button class="btn" id="payF" type="button">Pay selected</button></p>' : '<p class="ok" style="margin-top:14px">All fees for this term are paid.</p>');
+  }
+  function transport() {
+    var c = child(), t = P.transportItem(c.admissionNo), reg = P.getReg(c.admissionNo);
+    var rid = reg ? reg.routeId : P.ROUTES[0].id, r = P.route(rid);
+    var h = '<h3>Transport registration</h3><label>Route<select id="rt">' + P.ROUTES.map(function (x) { return '<option value="' + x.id + '"' + (x.id === rid ? ' selected' : '') + '>' + esc(x.name) + ' (' + P.naira(x.fee) + ')</option>'; }).join('') + '</select></label>' +
+      '<label>Pickup location<select id="pk">' + r.pickups.map(function (p) { return '<option' + (reg && reg.pickup === p ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') + '</select></label>' +
+      '<button class="btn btn-ghost" id="saveR" type="button">' + (reg ? 'Update registration' : 'Register for transport') + '</button><p class="msg" id="tm" role="status"></p>';
+    if (t) h += '<h3 class="mt">Fee and status</h3><div class="sums"><div><b>' + P.naira(t.due) + '</b><span>Term fee</span></div><div><b class="' + (t.balance ? '' : 'ok') + '">' + (t.balance ? 'Unpaid' : 'Paid') + '</b><span>Status</span></div><div><b>' + esc(t.route.bus) + '</b><span>Bus · ' + esc(t.route.driver) + '</span></div></div>' + (t.balance ? '<button class="btn" id="payT" type="button">Pay transport fee</button>' : '');
+    return h;
+  }
+  function hist() {
+    var h = P.history(child().admissionNo);
+    return '<h3>Payment history</h3>' + (h.length ? h.map(function (p) {
+      return '<div class="li"><span class="n"><b>' + P.naira(p.amount) + '</b> · ' + esc(p.items.map(function (i) { return i.name; }).join(', ')) + '<small>' + dt(p.date) + ' · ' + esc(p.receiptNo) + ' · ' + esc(p.status) + ' (demo)</small></span><a href="receipt.html?id=' + encodeURIComponent(p.id) + '">Receipt</a></div>';
+    }).join('') : '<p class="empty">No payments yet. Payments you make will appear here.</p>');
+  }
+
+  function confirmPay(kind, items) {
+    var total = items.reduce(function (s, i) { return s + i.amount; }, 0);
+    $('box').innerHTML = '<h3>Confirm simulated payment</h3><div class="sim">Demo only. No money will be taken.</div>' + items.map(function (i) { return '<p>' + esc(i.name) + ': <b>' + P.naira(i.amount) + '</b></p>'; }).join('') +
+      '<p style="margin:10px 0"><b>Total ' + P.naira(total) + '</b></p><div class="row"><button class="btn" id="go" type="button">Run simulated payment</button><button class="btn btn-ghost" id="no" type="button">Cancel</button></div>';
+    $('ov').hidden = false;
+    $('no').onclick = function () { $('ov').hidden = true; };
+    $('go').onclick = async function () {
+      this.disabled = true; this.textContent = 'Processing…';
+      var g = await P.checkout({ adm: sel, kind: kind, items: items, total: total });
+      var rec = g.status === 'simulated' && P.record(sel, kind, items, cur.name);
+      $('box').innerHTML = rec ? '<h3 class="ok">Simulated payment recorded</h3><p>Receipt ' + esc(rec.receiptNo) + '</p><div class="row" style="margin-top:12px"><a class="btn" href="receipt.html?id=' + encodeURIComponent(rec.id) + '">View receipt</a><button class="btn btn-ghost" id="cl" type="button">Close</button></div>' : '<h3 style="color:#D92D20">Payment failed</h3><p>Nothing was recorded. Please try again.</p><button class="btn btn-ghost" id="cl" type="button" style="margin-top:12px">Close</button>';
+      $('cl').onclick = function () { $('ov').hidden = true; draw(); };
+    };
+  }
+
+  function draw() {
+    drawKids();
+    if (!sel) { $('view').innerHTML = '<p class="empty">No children linked. Link a child from the parent dashboard first.</p>'; return; }
+    $('view').innerHTML = tab === 'fees' ? fees() : tab === 'transport' ? transport() : hist();
+    var c = child();
+    if ($('payF')) $('payF').onclick = function () {
+      var st = P.statement(c.admissionNo, c.cls), items = [];
+      document.querySelectorAll('[data-i]:checked').forEach(function (b) { var i = st[+b.dataset.i]; items.push({ name: i.name, amount: i.balance }); });
+      if (!items.length) { alert('Select at least one fee.'); return; }
+      confirmPay('fees', items);
+    };
+    if ($('rt')) {
+      $('rt').onchange = function () { var r = P.route(this.value); $('pk').innerHTML = r.pickups.map(function (p) { return '<option>' + esc(p) + '</option>'; }).join(''); };
+      $('saveR').onclick = function () { var ok = P.setReg(c.admissionNo, $('rt').value, $('pk').value); if (ok) draw(); else { $('tm').className = 'msg err'; $('tm').textContent = 'Could not save. Try again.'; } };
+    }
+    if ($('payT')) $('payT').onclick = function () { var t = P.transportItem(c.admissionNo); confirmPay('transport', [{ name: t.name, amount: t.balance }]); };
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
