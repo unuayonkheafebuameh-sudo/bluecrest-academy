@@ -14,13 +14,11 @@
 
 <main class="wrap dash">
   <section class="welcome"><h1 id="hi"></h1><p>Manage all your children from one account.</p></section>
-
   <section class="card">
     <h3>My children</h3>
     <div class="kids" id="kids"></div>
     <div id="detail"></div>
   </section>
-
   <section class="card sec2">
     <h3>Link a child</h3>
     <p class="sub">Enter your child's admission number and date of birth.</p>
@@ -34,6 +32,7 @@
 </main>
 
 <script src="js/auth.js"></script>
+<script src="js/modules.js"></script>
 <script>
 (function () {
   'use strict';
@@ -46,21 +45,14 @@
   $('hi').textContent = 'Welcome, ' + cur.name;
   $('out').onclick = A.logout;
 
-  var tiles = [['Results', 5], ['Attendance', 7], ['Timetable', 6], ['Pay tuition', 4, 'payments.html#fees'], ['Pay transport', 4, 'payments.html#transport'], ['Receipts', 4, 'payments.html#history'], ['Complaints', 8], ['Notifications', 8]];
-  function tileHtml(t) {
-    return t[2] ? '<a class="tile" style="opacity:1;text-decoration:none;color:inherit" href="' + t[2] + '"><b>' + t[0] + '</b><small>Open</small></a>' : '<div class="tile"><b>' + t[0] + '</b><small>Coming in Phase ' + t[1] + '</small></div>';
-  }
-
   function render() {
     var kids = A.children(cur.loginId);
-    if (!kids.length) {
-      $('kids').innerHTML = ''; $('detail').innerHTML = '<p class="empty">No children linked yet. Use the form below.</p>'; return;
-    }
+    if (!kids.length) { $('kids').innerHTML = ''; $('detail').innerHTML = '<p class="empty">No children linked yet. Use the form below.</p>'; return; }
     if (!sel || !kids.some(function (k) { return k.admissionNo === sel; })) sel = kids[0].admissionNo;
     $('kids').innerHTML = kids.map(function (k) { return '<button type="button" data-a="' + esc(k.admissionNo) + '" class="' + (k.admissionNo === sel ? 'on' : '') + '">' + esc(k.name) + '</button>'; }).join('');
     var k = A.student(sel);
     $('detail').innerHTML = '<div class="pf"><div><span>Name</span>' + esc(k.name) + '</div><div><span>Admission no.</span>' + esc(k.admissionNo) + '</div><div><span>Class</span>' + esc(k.cls) + '</div><div><span>Session</span>' + esc(k.session) + '</div></div>' +
-      '<div class="tiles">' + tiles.map(tileHtml).join('') + '</div>';
+      '<div class="tiles">' + BIA.modules.tiles('parent') + '</div>';
   }
   $('kids').addEventListener('click', function (e) { if (e.target.dataset.a) { sel = e.target.dataset.a; render(); } });
 
