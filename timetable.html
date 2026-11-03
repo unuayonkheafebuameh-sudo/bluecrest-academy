@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timetable | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+select{display:block;width:100%;margin-top:5px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.sim{background:#FEF0C7;border:1px solid #F5C451;color:#7A4B00;border-radius:12px;padding:10px 14px;font-size:.88rem;margin-bottom:16px}
+.sl{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.sl .tm{width:104px;font-size:.82rem;color:var(--mute);flex-shrink:0}.sl div{flex:1}.sl small{display:block;color:var(--mute)}.sl i{font-size:.75rem;color:var(--b1);font-style:normal}
+.sl.brk{background:var(--soft);border-radius:10px;padding:10px;margin:4px 0;border:0}.sl.brk b{color:var(--b4)}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:640px}
+th{background:var(--b4);color:#fff;padding:9px 8px;font-size:.82rem;text-align:left}
+td{padding:8px;border-bottom:1px solid var(--line);font-size:.85rem;vertical-align:top}td small{display:block;color:var(--mute)}
+td.brk{background:var(--soft);text-align:center;font-weight:700;color:var(--b4)}
+@media print{.top,.np{display:none!important}.dash{padding:0}th{background:#003BBD!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Timetable</a><span><a id="back" href="#" class="who" style="font-weight:500">Dashboard</a> <button type="button" id="out">Log out</button></span></div></header>
+
+<main class="wrap dash">
+  <div class="sim np">Sample timetable. The school publishes the official version here once it is approved.</div>
+  <div class="card np" style="margin-bottom:16px"><label>Class<select id="cls"></select></label></div>
+  <div class="tabs np" id="days"></div>
+  <section class="card" id="view"></section>
+  <p class="np" style="margin-top:16px"><button class="btn" id="print" type="button">Print or save as PDF</button></p>
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/timetable.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, T = BIA.tt, cur = A.current();
+  if (!cur) { location.replace('login.html'); return; }
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  $('back').href = cur.role + '-portal.html'; $('out').onclick = A.logout; $('print').onclick = function () { window.print(); };
+
+  var cls = 'JSS 1';
+  if (cur.role === 'student') { var s = A.student(cur.loginId); if (s) cls = s.cls; }
+  else if (cur.role === 'parent') { var k = A.children(cur.loginId)[0]; if (k) cls = k.cls; }
+  var today = (new Date().getDay() + 6) % 7, sel = today < 5 ? today : 0;
+
+  $('cls').innerHTML = T.CLASSES.map(function (c) { return '<option' + (c === cls ? ' selected' : '') + '>' + c + '</option>'; }).join('');
+  $('cls').onchange = function () { cls = this.value; draw(); };
+  $('days').onclick = function (e) { if (e.target.dataset.d) { sel = +e.target.dataset.d; draw(); } };
+
+  function draw() {
+    var data = T.get(cls);
+    $('days').innerHTML = T.DAYS.map(function (d, i) { return '<button type="button" data-d="' + i + '" class="' + (sel === i ? 'on' : '') + '">' + d.slice(0, 3) + '</button>'; }).join('') +
+      '<button type="button" data-d="5" class="' + (sel === 5 ? 'on' : '') + '">Week</button>';
+    var out;
+    if (sel < 5) {
+      var pi = 0;
+      out = '<h3>' + esc(cls) + ' · ' + T.DAYS[sel] + (sel === today ? ' (today)' : '') + '</h3>' + T.SLOTS.map(function (sl) {
+        if (sl.n) return '<div class="sl brk"><span class="tm">' + sl.t + '</span><div><b>' + sl.n + '</b></div></div>';
+        var e = data[T.DAYS[sel]][pi++];
+        return '<div class="sl"><span class="tm">' + sl.t + '</span><div><b>' + esc(e[0]) + '</b><small>' + esc(e[1]) + '</small></div><i>Period ' + pi + '</i></div>';
+      }).join('');
+    } else {
+      var p = {}; T.DAYS.forEach(function (d) { p[d] = 0; });
+      out = '<h3>' + esc(cls) + ' · Weekly timetable</h3><div class="scroll"><table><thead><tr><th>Time</th>' + T.DAYS.map(function (d) { return '<th>' + d.slice(0, 3) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        T.SLOTS.map(function (sl) {
+          if (sl.n) return '<tr><td>' + sl.t + '</td><td class="brk" colspan="5">' + sl.n + '</td></tr>';
+          return '<tr><td>' + sl.t + '</td>' + T.DAYS.map(function (d) { var e = data[d][p[d]++]; return '<td>' + esc(e[0]) + '<small>' + esc(e[1]) + '</small></td>'; }).join('') + '</tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    $('view').innerHTML = out;
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
