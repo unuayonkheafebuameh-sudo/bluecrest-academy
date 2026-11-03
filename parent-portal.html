@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parent Portal | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Parent Portal</a><span><span class="who" id="who"></span> <button type="button" id="out">Log out</button></span></div></header>
+
+<main class="wrap dash">
+  <section class="welcome"><h1 id="hi"></h1><p>Manage all your children from one account.</p></section>
+
+  <section class="card">
+    <h3>My children</h3>
+    <div class="kids" id="kids"></div>
+    <div id="detail"></div>
+  </section>
+
+  <section class="card sec2">
+    <h3>Link a child</h3>
+    <p class="sub">Enter your child's admission number and date of birth.</p>
+    <form id="link" novalidate>
+      <label>Admission number<input name="adm" placeholder="BIA/2026/003" required></label>
+      <label>Child's date of birth<input type="date" name="dob" required></label>
+      <p class="msg" id="lm" role="alert"></p>
+      <button class="btn" type="submit">Link child</button>
+    </form>
+  </section>
+</main>
+
+<script src="js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, cur = A.require('parent'); if (!cur) return;
+  var sel = null;
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+  $('who').textContent = cur.name;
+  $('hi').textContent = 'Welcome, ' + cur.name;
+  $('out').onclick = A.logout;
+
+  var tiles = [['Results', 5], ['Attendance', 7], ['Timetable', 6], ['Pay tuition', 4], ['Pay transport', 4], ['Receipts', 4], ['Complaints', 8], ['Notifications', 8]];
+
+  function render() {
+    var kids = A.children(cur.loginId);
+    if (!kids.length) {
+      $('kids').innerHTML = ''; $('detail').innerHTML = '<p class="empty">No children linked yet. Use the form below.</p>'; return;
+    }
+    if (!sel || !kids.some(function (k) { return k.admissionNo === sel; })) sel = kids[0].admissionNo;
+    $('kids').innerHTML = kids.map(function (k) { return '<button type="button" data-a="' + esc(k.admissionNo) + '" class="' + (k.admissionNo === sel ? 'on' : '') + '">' + esc(k.name) + '</button>'; }).join('');
+    var k = A.student(sel);
+    $('detail').innerHTML = '<div class="pf"><div><span>Name</span>' + esc(k.name) + '</div><div><span>Admission no.</span>' + esc(k.admissionNo) + '</div><div><span>Class</span>' + esc(k.cls) + '</div><div><span>Session</span>' + esc(k.session) + '</div></div>' +
+      '<div class="tiles">' + tiles.map(function (t) { return '<div class="tile"><b>' + t[0] + '</b><small>Coming in Phase ' + t[1] + '</small></div>'; }).join('') + '</div>';
+  }
+  $('kids').addEventListener('click', function (e) { if (e.target.dataset.a) { sel = e.target.dataset.a; render(); } });
+
+  $('link').addEventListener('submit', function (e) {
+    e.preventDefault(); var f = e.target, m = $('lm');
+    if (!f.adm.value.trim() || !f.dob.value) { m.className = 'msg err'; m.textContent = 'Enter both details.'; return; }
+    var r = A.linkChild(cur.loginId, f.adm.value, f.dob.value);
+    m.className = 'msg ' + (r.error ? 'err' : 'ok');
+    m.textContent = r.error || (r.name + ' has been linked.');
+    if (r.ok) { f.reset(); render(); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>
