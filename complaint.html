@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complaints and Suggestions | BlueCrest International Academy</title>
+<meta name="description" content="Share a complaint, suggestion or question with BlueCrest International Academy and track the response.">
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+select,textarea{display:block;width:100%;margin-top:5px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.chk{display:flex;gap:10px;align-items:flex-start}.chk input{width:auto;margin-top:5px}
+.refbox{font:800 1.4rem system-ui,Arial,sans-serif;letter-spacing:.03em;background:var(--soft);border:2px dashed var(--b2);border-radius:14px;padding:14px;margin:14px 0;word-break:break-all;text-align:center}
+.tick{width:60px;height:60px;border-radius:50%;background:var(--grad);color:#fff;font-size:2rem;display:grid;place-items:center;margin:0 auto 12px}
+.warn{background:#FEF0C7;border:1px solid #F5C451;color:#7A4B00;border-radius:12px;padding:10px 14px;font-size:.88rem;margin:10px 0}
+.badge{display:inline-block;padding:5px 14px;border-radius:999px;font-weight:700;color:#fff;font-size:.9rem}
+.s-Submitted{background:#B54708}.s-Under-Review{background:#0057FF}.s-In-Progress{background:#6941C6}.s-Resolved{background:#067647}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:16px 0}
+.flow div{text-align:center;font-size:.75rem;color:var(--mute);border-top:4px solid var(--line);padding-top:6px}
+.flow div.on{border-color:var(--b1);color:var(--b4);font-weight:700}
+.resp{background:var(--soft);border-left:4px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:12px}
+.det{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:14px}.det span{display:block;color:var(--mute);font-size:.8rem}
+@media(max-width:520px){.det{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Feedback</a><span><a id="back" href="index.html" class="who" style="font-weight:500">Home</a></span></div></header>
+
+<main class="wrap auth" style="max-width:640px">
+  <div class="tabs"><button type="button" data-t="submit" class="on">Submit</button><button type="button" data-t="track">Track</button></div>
+
+  <section id="pSubmit" class="card">
+    <h2 style="font-size:1.4rem">Tell us what you think</h2>
+    <p class="sub">We read every message. You can submit anonymously.</p>
+    <form id="f" novalidate>
+      <label>Category<select name="type" required><option value="">Select a category</option></select></label>
+      <label class="chk"><input type="checkbox" name="anon"><span>Submit anonymously. We will not see your name or contact details.</span></label>
+      <div id="who">
+        <label style="margin-top:12px">Your name<input name="name" autocomplete="name"></label>
+        <label>Email or phone number<input name="contact" autocomplete="email"></label>
+      </div>
+      <label style="margin-top:12px">Subject<input name="subject" maxlength="120" required></label>
+      <label>Details<textarea name="message" rows="5" maxlength="3000" required></textarea></label>
+      <p class="msg" id="m" role="alert"></p>
+      <button class="btn" type="submit">Send</button>
+    </form>
+  </section>
+
+  <section id="pDone" class="card" hidden style="text-align:center">
+    <div class="tick">✓</div>
+    <h2 style="font-size:1.4rem">Received. Thank you.</h2>
+    <p>Your reference number is:</p>
+    <div class="refbox" id="ref"></div>
+    <div class="warn" id="anonWarn" hidden><b>Save this number now.</b> You chose to stay anonymous, so we cannot recover it. It is the only way to check for a response.</div>
+    <div class="row" style="justify-content:center"><button class="btn btn-ghost" id="copy" type="button">Copy reference</button><button class="btn" id="again" type="button">Send another</button></div>
+  </section>
+
+  <section id="pTrack" class="card" hidden>
+    <h2 style="font-size:1.4rem">Track your message</h2>
+    <form id="ft" novalidate>
+      <label>Reference number<input name="ref" placeholder="CMP-2026-12345678" required autocapitalize="characters"></label>
+      <label>Email or phone you gave <small>(leave blank if you submitted anonymously)</small><input name="contact"></label>
+      <p class="msg" id="tm" role="alert"></p>
+      <button class="btn" type="submit">Check status</button>
+    </form>
+    <div id="res" hidden aria-live="polite"></div>
+  </section>
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/complaints.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = BIA.cmp, cur = BIA.auth.current();
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  function dt(i) { return new Date(i).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  if (cur) $('back').href = cur.role + '-portal.html', $('back').textContent = 'Dashboard';
+
+  var f = $('f'), sel = f.type;
+  C.TYPES.forEach(function (t) { var o = document.createElement('option'); o.textContent = t; sel.appendChild(o); });
+  f.anon.onchange = function () { $('who').hidden = this.checked; };
+
+  function show(t) {
+    $('pSubmit').hidden = t !== 'submit'; $('pTrack').hidden = t !== 'track'; $('pDone').hidden = true;
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+  }
+  document.querySelector('.tabs').onclick = function (e) { if (e.target.dataset.t) show(e.target.dataset.t); };
+  if (location.hash === '#track') show('track');
+
+  f.addEventListener('submit', function (e) {
+    e.preventDefault(); var m = $('m'); m.className = 'msg err'; m.textContent = '';
+    var r = C.add({ type: f.type.value, anonymous: f.anon.checked, name: f.name.value, contact: f.contact.value, subject: f.subject.value, message: f.message.value });
+    if (r.error) { m.textContent = r.error; return; }
+    $('ref').textContent = r.rec.ref; $('anonWarn').hidden = !r.rec.anonymous;
+    $('pSubmit').hidden = true; $('pDone').hidden = false; f.reset(); $('who').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  $('again').onclick = function () { show('submit'); };
+  $('copy').onclick = function () {
+    var b = this; (navigator.clipboard ? navigator.clipboard.writeText($('ref').textContent) : Promise.reject()).then(function () { b.textContent = 'Copied'; }, function () { b.textContent = 'Select and copy it manually'; });
+  };
+
+  $('ft').addEventListener('submit', function (e) {
+    e.preventDefault(); var t = e.target, m = $('tm'), out = $('res'); m.textContent = ''; out.hidden = true;
+    if (!t.ref.value.trim()) { m.textContent = 'Enter your reference number.'; return; }
+    var c = C.find(t.ref.value, t.contact.value);
+    if (!c) { m.textContent = 'No message matches those details. Check them and try again.'; return; }
+    out.innerHTML = '<div style="margin-top:18px"><span class="badge s-' + c.status.replace(' ', '-') + '">' + esc(c.status) + '</span></div>' +
+      '<div class="flow">' + C.STATUSES.map(function (s) { return '<div class="' + (C.STATUSES.indexOf(s) <= C.STATUSES.indexOf(c.status) ? 'on' : '') + '">' + s + '</div>'; }).join('') + '</div>' +
+      '<div class="det"><div><span>Reference</span>' + esc(c.ref) + '</div><div><span>Category</span>' + esc(c.type) + '</div><div><span>Submitted</span>' + dt(c.submitted) + '</div><div><span>Last updated</span>' + dt(c.updated) + '</div></div>' +
+      '<p style="margin-top:12px"><b>' + esc(c.subject) + '</b></p><p style="color:var(--mute);white-space:pre-wrap">' + esc(c.message) + '</p>' +
+      (c.response ? '<div class="resp"><b>Response from the school</b><p style="white-space:pre-wrap;margin-top:4px">' + esc(c.response) + '</p></div>' : '<p class="sub" style="margin-top:12px">No response yet. We will reply here as soon as we have reviewed it.</p>');
+    out.hidden = false;
+  });
+})();
+</script>
+</body>
+</html>
