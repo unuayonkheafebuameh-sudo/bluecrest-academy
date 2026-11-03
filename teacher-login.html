@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher Login | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BlueCrest International Academy</a><a href="login.html" class="who" style="font-weight:500">Student / Parent login</a></div></header>
+<main class="wrap auth">
+  <form class="card" id="f" novalidate>
+    <h2 style="font-size:1.4rem">Teacher login</h2>
+    <label>Email<input type="email" name="id" required autocomplete="username"></label>
+    <label>Password<input type="password" name="pw" required autocomplete="current-password"></label>
+    <p class="msg err" id="m" role="alert"></p>
+    <button class="btn" type="submit">Log in</button>
+    <div class="demo"><b>Demo only.</b> teacher@demo.com / teacher123</div>
+  </form>
+</main>
+<script src="js/auth.js"></script>
+<script>
+document.getElementById('f').addEventListener('submit', async function (e) {
+  e.preventDefault(); var f = e.target, m = document.getElementById('m'); m.textContent = '';
+  if (!f.id.value.trim() || !f.pw.value) { m.textContent = 'Enter your email and password.'; return; }
+  var u = await BIA.auth.login('teacher', f.id.value, f.pw.value);
+  if (!u) { m.textContent = 'Email or password is incorrect.'; return; }
+  location.href = 'teacher-portal.html';
+});
+</script>
+</body>
+</html>
