@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assignments and Materials | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+textarea{display:block;width:100%;margin-top:5px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit}
+details{background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+summary{padding:16px;font-weight:700;cursor:pointer}summary small{display:block;font-weight:500;color:var(--mute)}
+.in{padding:0 16px 16px}.tag{display:inline-block;padding:3px 12px;border-radius:999px;font-size:.8rem;font-weight:700;color:#fff}
+.t-todo{background:#B54708}.t-done{background:#0057FF}.t-marked{background:#067647}.t-late{background:#D92D20}
+.i2{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}.i2 small{display:block;color:var(--mute)}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Learning</a><span><a id="back" href="#" class="who" style="font-weight:500">Dashboard</a> <button type="button" id="out">Log out</button></span></div></header>
+<main class="wrap dash">
+  <div class="kids" id="kids"></div>
+  <div class="tabs"><button type="button" data-t="assignments">Assignments</button><button type="button" data-t="materials">Learning materials</button></div>
+  <div id="view"></div>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/school.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, S = BIA.school, cur = A.current();
+  if (!cur || (cur.role !== 'student' && cur.role !== 'parent')) { location.replace('login.html'); return; }
+  var isStu = cur.role === 'student';
+  var kids = isStu ? [A.student(cur.loginId)] : A.children(cur.loginId);
+  var sel = kids[0] && kids[0].admissionNo, tab = location.hash === '#materials' ? 'materials' : 'assignments';
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  $('back').href = cur.role + '-portal.html'; $('out').onclick = A.logout;
+  $('kids').onclick = function (e) { if (e.target.dataset.a) { sel = e.target.dataset.a; draw(); } };
+  document.querySelector('.tabs').onclick = function (e) { if (e.target.dataset.t) { tab = e.target.dataset.t; history.replaceState(null, '', '#' + tab); draw(); } };
+
+  function asgs(c) {
+    var list = S.asgForClass(c.cls);
+    if (!list.length) return '<div class="card"><p class="empty">No assignments yet. New assignments from your teachers appear here.</p></div>';
+    return list.map(function (a, i) {
+      var m = S.mySub(sel, a.id), overdue = a.due < S.today() && !m;
+      var tag = m ? (m.score != null ? '<span class="tag t-marked">Marked ' + m.score + '/100</span>' : '<span class="tag t-done">Submitted</span>') : (overdue ? '<span class="tag t-late">Overdue</span>' : '<span class="tag t-todo">To do</span>');
+      var form = isStu && (!m || m.score == null) ? '<label>Your answer<textarea rows="4" maxlength="5000">' + esc(m ? m.text : '') + '</textarea></label><p class="msg"></p><button class="btn go" type="button" data-a="' + a.id + '">' + (m ? 'Update submission' : 'Submit work') + '</button>' : '';
+      return '<details' + (i === 0 ? ' open' : '') + '><summary>' + esc(a.title) + ' ' + tag + '<small>' + esc(a.subject + ' · due ' + a.due) + '</small></summary><div class="in"><p style="white-space:pre-wrap">' + esc(a.desc) + '</p>' +
+        (m ? '<p style="margin-top:10px"><b>Submitted work:</b></p><p style="white-space:pre-wrap;color:var(--mute)">' + esc(m.text) + '</p>' + (m.feedback ? '<p><b>Teacher feedback:</b> ' + esc(m.feedback) + '</p>' : '') : '') + form + '</div></details>';
+    }).join('');
+  }
+  function mats(c) {
+    var list = S.matForClass(c.cls);
+    if (!list.length) return '<div class="card"><p class="empty">No learning materials yet. Materials your teachers share appear here.</p></div>';
+    return list.map(function (m) {
+      return '<div class="i2"><b>' + esc(m.title) + '</b><small>' + esc(m.subject + ' · ' + m.date) + '</small>' + (m.note ? '<p style="margin:6px 0">' + esc(m.note) + '</p>' : '') +
+        (m.file ? '<a class="btn btn-ghost" style="margin-top:8px" download="' + esc(m.file.name) + '" href="' + m.file.data + '">Download ' + esc(m.file.name) + '</a>' : '') + '</div>';
+    }).join('');
+  }
+  function draw() {
+    $('kids').innerHTML = !isStu ? kids.map(function (k) { return '<button type="button" data-a="' + esc(k.admissionNo) + '" class="' + (k.admissionNo === sel ? 'on' : '') + '">' + esc(k.name) + '</button>'; }).join('') : '';
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === tab); });
+    if (!sel) { $('view').innerHTML = '<div class="card"><p class="empty">No children linked. Link a child from the parent dashboard first.</p></div>'; return; }
+    var c = A.student(sel);
+    $('view').innerHTML = '<h3 style="margin-bottom:12px">' + esc(c.name) + ' · ' + esc(c.cls) + '</h3>' + (tab === 'assignments' ? asgs(c) : mats(c));
+  }
+  $('view').addEventListener('click', function (e) {
+    if (!e.target.classList.contains('go')) return;
+    var box = e.target.closest('.in'), r = S.submit(sel, e.target.dataset.a, box.querySelector('textarea').value), m = box.querySelector('.msg');
+    if (r.error) { m.className = 'msg err'; m.textContent = r.error; } else draw();
+  });
+  draw();
+})();
+</script>
+</body>
+</html>
