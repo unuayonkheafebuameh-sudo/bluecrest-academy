@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receipt | BlueCrest International Academy</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+.rc{max-width:640px;margin:20px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;position:relative}
+.rc h1{font-size:1.4rem}.demo{background:#FEF0C7;border:1px solid #F5C451;color:#7A4B00;text-align:center;font-weight:700;padding:8px;border-radius:10px;margin:14px 0}
+table{width:100%;border-collapse:collapse;margin:14px 0}td,th{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left}td:last-child,th:last-child{text-align:right}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}.meta span{display:block;color:var(--mute);font-size:.8rem}
+@media print{.np{display:none!important}.rc{border:0;margin:0}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="rc" id="rc"></div>
+<p class="np" style="text-align:center;margin-bottom:30px"><button class="btn" onclick="window.print()" type="button">Print or save as PDF</button> <a class="btn btn-ghost" href="payments.html#history">Back</a></p></div>
+<script src="js/auth.js"></script>
+<script src="js/pay.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, P = BIA.pay, cur = A.current(), box = document.getElementById('rc');
+  function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  if (!cur) { location.replace('login.html'); return; }
+  var p = P.byId(new URLSearchParams(location.search).get('id'));
+  var allowed = p && ((cur.role === 'student' && cur.loginId === p.adm) || (cur.role === 'parent' && A.children(cur.loginId).some(function (k) { return k.admissionNo === p.adm; })));
+  if (!allowed) { box.innerHTML = '<h1>Receipt not found</h1><p>This receipt does not exist or you do not have access to it.</p>'; return; }
+  var s = A.student(p.adm);
+  box.innerHTML = '<h1>BlueCrest International Academy</h1><p style="color:var(--mute)">Payment receipt</p><div class="demo">DEMO RECEIPT: NOT A REAL PAYMENT</div>' +
+    '<div class="meta"><div><span>Receipt no.</span>' + esc(p.receiptNo) + '</div><div><span>Date</span>' + new Date(p.date).toLocaleString('en-GB') + '</div><div><span>Student</span>' + esc(s.name) + '</div><div><span>Admission no.</span>' + esc(s.admissionNo) + '</div><div><span>Class</span>' + esc(s.cls) + '</div><div><span>Term</span>' + esc(p.term) + '</div><div><span>Paid by</span>' + esc(p.payer) + '</div><div><span>Status</span>' + esc(p.status) + '</div></div>' +
+    '<table><tr><th>Item</th><th>Amount</th></tr>' + p.items.map(function (i) { return '<tr><td>' + esc(i.name) + '</td><td>' + P.naira(i.amount) + '</td></tr>'; }).join('') + '<tr><th>Total</th><th>' + P.naira(p.amount) + '</th></tr></table>' +
+    '<p style="color:var(--mute);font-size:.82rem">Authorised signature: ____________________</p>';
+})();
+</script>
+</body>
+</html>
