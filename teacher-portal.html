@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher Portal | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+select,textarea{display:block;width:100%;margin-top:5px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.tabs{overflow-x:auto}.tabs button{flex:none;white-space:nowrap;padding:10px 16px}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:420px}
+th{background:var(--b4);color:#fff;text-align:left;padding:9px 8px;font-size:.82rem}
+td{padding:8px;border-bottom:1px solid var(--line);font-size:.9rem}td small{display:block;color:var(--mute)}
+.sc{width:74px;margin:0;padding:8px}
+.i2{background:var(--soft);border-radius:14px;padding:14px;margin-bottom:10px}.i2 small{display:block;color:var(--mute)}
+.li2{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.seg{display:flex;gap:6px}.seg button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:600 .85rem system-ui,Arial,sans-serif;cursor:pointer}
+.seg button.p{background:#067647;color:#fff;border-color:#067647}.seg button.a{background:#D92D20;color:#fff;border-color:#D92D20}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+details{border:1px solid var(--line);border-radius:12px;margin:10px 0;padding:0 12px}summary{padding:12px 0;cursor:pointer;font-weight:600}
+.sb{border-top:1px solid var(--line);padding:10px 0}
+@media(max-width:520px){.cols2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Teacher Portal</a><span><span class="who" id="who"></span> <button type="button" id="out">Log out</button></span></div></header>
+
+<main class="wrap dash">
+  <section class="welcome"><h1 id="hi"></h1><p>Manage your classes, scores, attendance and learning materials.</p></section>
+  <div class="tabs" id="tabs"></div>
+  <section class="card" id="panel"></section>
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/results.js"></script>
+<script src="js/timetable.js"></script>
+<script src="js/school.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, T = BIA.tt, S = BIA.school, R = BIA.results;
+  var cur = A.require('teacher'); if (!cur) return;
+  var asg = A.teacher(cur.loginId), TABS = [['classes', 'Classes'], ['scores', 'Scores'], ['attendance', 'Attendance'], ['tasks', 'Assignments'], ['files', 'Materials']];
+  var tab = (location.hash || '#classes').slice(1), st = { ai: 0, cls: null, date: S.today(), flash: '' };
+  if (!TABS.some(function (t) { return t[0] === tab; })) tab = 'classes';
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  $('who').textContent = cur.name; $('hi').textContent = 'Welcome, ' + cur.name; $('out').onclick = A.logout;
+
+  var myClasses = asg.map(function (a) { return a[0]; }).filter(function (c, i, l) { return l.indexOf(c) === i; });
+  function asel(withId) {
+    return '<label>Class and subject<select ' + (withId ? 'id="as" ' : '') + 'name="ai">' + asg.map(function (a, i) { return '<option value="' + i + '"' + (i === st.ai ? ' selected' : '') + '>' + esc(a[0] + ' · ' + a[1]) + '</option>'; }).join('') + '</select></label>';
+  }
+  function say(t, good) { var m = $('m'); if (m) { m.className = 'msg ' + (good ? 'ok' : 'err'); m.textContent = t; } }
+
+  /* Panels */
+  function pClasses() {
+    var nb = T.SLOTS.filter(function (s) { return !s.n; });
+    return '<h3>My classes and teaching timetable</h3>' + asg.map(function (a) {
+      var tt = T.get(a[0]), times = [];
+      T.DAYS.forEach(function (d) { tt[d].forEach(function (e, i) { if (e[0] === a[1]) times.push(d.slice(0, 3) + ' ' + nb[i].t); }); });
+      return '<div class="i2"><b>' + esc(a[0] + ' · ' + a[1]) + '</b><small>' + A.studentsIn(a[0]).length + ' students</small><small>Teaching times: ' + esc(times.join(', ') || 'Not on the timetable') + '</small></div>';
+    }).join('') + '<p style="margin-top:12px"><a class="btn btn-ghost" href="timetable.html">Class timetables</a> <a class="btn btn-ghost" href="syllabus.html">Syllabus</a></p>' +
+      '<h3 class="mt" style="margin-top:22px">Announcements</h3><div class="i2"><b>First term examinations timetable released</b><small>28 Oct 2026</small></div><div class="i2"><b>Parent and teacher meeting</b><small>27 Nov 2026</small></div>';
+  }
+  var STAT = { draft: 'Draft (you can edit)', submitted: 'Submitted, waiting for admin approval', approved: 'Approved' };
+  function pScores() {
+    var a = asg[st.ai], rec = S.scGet(a[0], a[1]), kids = A.studentsIn(a[0]), cfg = R.cfg(), lock = rec.status !== 'draft';
+    return '<h3>Enter scores</h3><p class="sub">' + S.SESSION + ' · ' + S.TERM + '</p>' + asel(true) +
+      '<p style="margin:10px 0"><b>Status:</b> ' + (STAT[rec.status] || rec.status) + '</p>' +
+      (kids.length ? '<div class="scroll"><table><thead><tr><th>Student</th><th>CA /' + cfg.caMax + '</th><th>Exam /' + cfg.examMax + '</th><th>Total</th><th>Grade</th></tr></thead><tbody>' +
+        kids.map(function (k) {
+          var r = rec.rows[k.admissionNo] || {};
+          function inp(f, max) { return '<td><input class="sc" data-f="' + f + '" type="number" inputmode="numeric" min="0" max="' + max + '" value="' + (r[f] == null ? '' : r[f]) + '"' + (lock ? ' disabled' : '') + '></td>'; }
+          return '<tr data-a="' + esc(k.admissionNo) + '"><td>' + esc(k.name) + '<small>' + esc(k.admissionNo) + '</small></td>' + inp('ca', cfg.caMax) + inp('exam', cfg.examMax) + '<td class="tot">–</td><td class="gr">–</td></tr>';
+        }).join('') + '</tbody></table></div>' : '<p class="empty">No students in this class yet.</p>') +
+      (lock || !kids.length ? '' : '<div class="row" style="margin-top:14px"><button class="btn btn-ghost" id="sv" type="button">Save draft</button><button class="btn" id="sb" type="button">Submit for approval</button></div>') +
+      '<p class="msg" id="m" role="alert"></p>';
+  }
+  function calc(tr) {
+    var ca = tr.querySelector('[data-f=ca]').value, ex = tr.querySelector('[data-f=exam]').value, t = tr.querySelector('.tot'), g = tr.querySelector('.gr');
+    if (ca === '' || ex === '') { t.textContent = '–'; g.textContent = '–'; return; }
+    t.textContent = +ca + +ex; g.textContent = R.grade(+ca + +ex).g;
+  }
+  function pAttendance() {
+    if (!st.cls || myClasses.indexOf(st.cls) < 0) st.cls = myClasses[0];
+    var kids = A.studentsIn(st.cls), marks = S.attGet(st.cls, st.date) || {};
+    return '<h3>Record attendance</h3><div class="cols2"><label>Class<select id="ac">' + myClasses.map(function (c) { return '<option' + (c === st.cls ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Date<input type="date" id="ad" value="' + st.date + '" max="' + S.today() + '"></label></div>' +
+      (kids.length ? kids.map(function (k) {
+        var m = marks[k.admissionNo] || 'P';
+        return '<div class="li2" data-a="' + esc(k.admissionNo) + '" data-v="' + m + '"><span>' + esc(k.name) + '</span><span class="seg"><button type="button" data-v="P" class="' + (m === 'P' ? 'p' : '') + '">Present</button><button type="button" data-v="A" class="' + (m === 'A' ? 'a' : '') + '">Absent</button></span></div>';
+      }).join('') + '<p style="margin-top:14px"><button class="btn" id="asv" type="button">Save attendance</button></p><p class="sub" style="margin-top:8px">Parents are notified when a child is marked absent.</p>' : '<p class="empty">No students in this class yet.</p>') + '<p class="msg" id="m" role="alert"></p>';
+  }
+  function pTasks() {
+    var list = S.asgByTeacher(cur.loginId);
+    return '<h3>Publish an assignment</h3><form id="fa" novalidate>' + asel(false) + '<label>Title<input name="title" required></label><label>Instructions<textarea name="desc" rows="3" required></textarea></label><label>Due date<input type="date" name="due" min="' + S.today() + '" required></label><p class="msg" id="m" role="alert"></p><button class="btn" type="submit">Publish assignment</button></form>' +
+      '<h3 style="margin-top:24px">My assignments</h3>' + (list.length ? list.map(function (a) {
+        var subs = S.subs(a.id);
+        return '<details><summary>' + esc(a.title) + '<small style="display:block;font-weight:400;color:var(--mute)">' + esc(a.cls + ' · ' + a.subject + ' · due ' + a.due + ' · ' + subs.length + ' submitted') + '</small></summary>' +
+          (subs.length ? subs.map(function (s) {
+            var k = A.student(s.adm);
+            return '<div class="sb"><b>' + esc(k ? k.name : s.adm) + '</b><small style="display:block;color:var(--mute)">Submitted ' + esc(s.date) + '</small><p style="margin:6px 0;white-space:pre-wrap">' + esc(s.text) + '</p>' +
+              '<div class="cols2"><label>Score /100<input type="number" min="0" max="100" class="rs" value="' + (s.score == null ? '' : s.score) + '"></label><label>Feedback<input class="rf" maxlength="500" value="' + esc(s.feedback) + '"></label></div><button class="btn btn-ghost rv" type="button" data-s="' + s.id + '">Save mark</button></div>';
+          }).join('') : '<p class="empty">No submissions yet.</p>') + '</details>';
+      }).join('') : '<p class="empty">No assignments published yet.</p>');
+  }
+  function pFiles() {
+    var list = S.matByTeacher(cur.loginId);
+    return '<h3>Share learning material</h3><form id="fm" novalidate>' + asel(false) + '<label>Title<input name="title" required></label><label>Note <small>(optional)</small><textarea name="note" rows="2"></textarea></label><label>File <small>PDF, PNG or JPG, up to 300 KB (optional)</small><input type="file" name="file" accept="application/pdf,image/png,image/jpeg"></label><p class="msg" id="m" role="alert"></p><button class="btn" type="submit">Share material</button></form>' +
+      '<h3 style="margin-top:24px">Shared by me</h3>' + (list.length ? list.map(function (m) { return '<div class="i2"><b>' + esc(m.title) + '</b><small>' + esc(m.cls + ' · ' + m.subject + ' · ' + m.date + (m.file ? ' · ' + m.file.name : '')) + '</small></div>'; }).join('') : '<p class="empty">Nothing shared yet.</p>');
+  }
+  var PANELS = { classes: pClasses, scores: pScores, attendance: pAttendance, tasks: pTasks, files: pFiles };
+
+  function draw() {
+    $('tabs').innerHTML = TABS.map(function (t) { return '<button type="button" data-t="' + t[0] + '" class="' + (t[0] === tab ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
+    $('panel').innerHTML = PANELS[tab]();
+    if (tab === 'scores') document.querySelectorAll('#panel tbody tr').forEach(calc);
+    if (st.flash) { say(st.flash, true); st.flash = ''; }
+  }
+  $('tabs').onclick = function (e) { if (e.target.dataset.t) { tab = e.target.dataset.t; history.replaceState(null, '', '#' + tab); draw(); } };
+
+  var P = $('panel');
+  P.addEventListener('input', function (e) { if (e.target.classList.contains('sc')) calc(e.target.closest('tr')); });
+  P.addEventListener('change', function (e) {
+    var i = e.target.id;
+    if (i === 'as') { st.ai = +e.target.value; draw(); }
+    else if (i === 'ac') { st.cls = e.target.value; draw(); }
+    else if (i === 'ad') { st.date = e.target.value || S.today(); draw(); }
+  });
+  P.addEventListener('click', function (e) {
+    var b = e.target, a = asg[st.ai];
+    if (b.id === 'sv' || b.id === 'sb') {
+      var submit = b.id === 'sb', rows = {};
+      document.querySelectorAll('#panel tbody tr').forEach(function (tr) { rows[tr.dataset.a] = { ca: tr.querySelector('[data-f=ca]').value, exam: tr.querySelector('[data-f=exam]').value }; });
+      if (submit && !confirm('Submit these scores for approval? You will not be able to edit them afterward.')) return;
+      var r = S.scSave(cur.loginId, a[0], a[1], rows, submit);
+      if (r.error) return say(r.error);
+      st.flash = submit ? 'Scores submitted for approval.' : 'Draft saved.'; draw();
+    } else if (b.closest('.seg') && b.dataset.v) {
+      var row = b.closest('.li2'); row.dataset.v = b.dataset.v;
+      row.querySelectorAll('.seg button').forEach(function (x) { x.className = x.dataset.v === b.dataset.v ? (b.dataset.v === 'P' ? 'p' : 'a') : ''; });
+    } else if (b.id === 'asv') {
+      var marks = {}; document.querySelectorAll('#panel .li2').forEach(function (r) { marks[r.dataset.a] = r.dataset.v; });
+      var res = S.attSave(cur.loginId, st.cls, st.date, marks);
+      if (res.error) return say(res.error);
+      var ab = Object.keys(marks).filter(function (k) { return marks[k] === 'A'; }).length;
+      st.flash = 'Attendance saved. ' + ab + ' absent' + (ab ? ', parents notified.' : '.'); draw();
+    } else if (b.classList.contains('rv')) {
+      var box = b.closest('.sb'), rr = S.review(cur.loginId, b.dataset.s, box.querySelector('.rs').value, box.querySelector('.rf').value);
+      b.textContent = rr.error ? rr.error : 'Saved';
+    }
+  });
+  P.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target, a = asg[+f.ai.value], r;
+    if (f.id === 'fa') {
+      r = S.asgAdd(cur.loginId, { cls: a[0], subject: a[1], title: f.title.value.trim(), desc: f.desc.value.trim(), due: f.due.value });
+      if (r.error) return say(r.error);
+      st.flash = 'Assignment published to ' + a[0] + '.'; draw();
+    } else if (f.id === 'fm') {
+      var file = f.file.files[0];
+      var go = function (fo) {
+        var x = S.matAdd(cur.loginId, { cls: a[0], subject: a[1], title: f.title.value.trim(), note: f.note.value.trim(), file: fo });
+        if (x.error) return say(x.error);
+        st.flash = 'Material shared with ' + a[0] + '.'; draw();
+      };
+      if (!file) return go(null);
+      if (S.FILE_TYPES.indexOf(file.type) < 0 || file.size > S.MAXFILE) return say('File must be a PDF, PNG or JPG up to 300 KB.');
+      var fr = new FileReader(); fr.onload = function () { go({ name: file.name, type: file.type, size: file.size, data: fr.result }); }; fr.readAsDataURL(file);
+    }
+  });
+  draw();
+})();
+</script>
+</body>
+</html>
