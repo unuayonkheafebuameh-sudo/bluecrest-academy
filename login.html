@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BlueCrest International Academy</a><a href="index.html" class="who">Home</a></div></header>
+
+<main class="wrap auth">
+  <div class="card">
+    <div class="tabs" role="tablist">
+      <button type="button" data-t="student" class="on">Student</button>
+      <button type="button" data-t="parent">Parent</button>
+      <button type="button" data-t="register">New parent</button>
+    </div>
+
+    <form id="fStudent" novalidate>
+      <label>Admission number<input name="id" placeholder="BIA/2026/001" required autocomplete="username"></label>
+      <label>Password<input type="password" name="pw" required autocomplete="current-password"></label>
+      <p class="msg err" role="alert"></p>
+      <button class="btn" type="submit">Log in as student</button>
+    </form>
+
+    <form id="fParent" novalidate hidden>
+      <label>Email<input type="email" name="id" required autocomplete="username"></label>
+      <label>Password<input type="password" name="pw" required autocomplete="current-password"></label>
+      <p class="msg err" role="alert"></p>
+      <button class="btn" type="submit">Log in as parent</button>
+    </form>
+
+    <form id="fReg" novalidate hidden>
+      <label>Full name<input name="name" required autocomplete="name"></label>
+      <label>Email<input type="email" name="email" required autocomplete="email"></label>
+      <label>Phone<input type="tel" name="phone" required autocomplete="tel"></label>
+      <label>Password <small>(at least 8 characters)</small><input type="password" name="pw" required autocomplete="new-password"></label>
+      <label>Confirm password<input type="password" name="pw2" required autocomplete="new-password"></label>
+      <p class="msg err" role="alert"></p>
+      <button class="btn" type="submit">Create parent account</button>
+    </form>
+
+    <div class="demo"><b>Demo only.</b> Student: BIA/2026/001 / student123<br>Parent: parent@demo.com / parent123<br>Teacher and admin logins arrive in later phases.</div>
+  </div>
+</main>
+
+<script src="js/auth.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, forms = { student: fStudent, parent: fParent, register: fReg };
+  function show(t) {
+    Object.keys(forms).forEach(function (k) { forms[k].hidden = k !== t; });
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+  }
+  document.querySelector('.tabs').addEventListener('click', function (e) { if (e.target.dataset.t) show(e.target.dataset.t); });
+  var q = new URLSearchParams(location.search).get('role'); if (forms[q]) show(q);
+
+  function err(f, t) { f.querySelector('.msg').textContent = t || ''; }
+  function go(role) { location.href = role + '-portal.html'; }
+
+  ['student', 'parent'].forEach(function (role) {
+    forms[role].addEventListener('submit', async function (e) {
+      e.preventDefault(); var f = e.target; err(f);
+      if (!f.id.value.trim() || !f.pw.value) return err(f, 'Enter your login and password.');
+      var u = await A.login(role, f.id.value, f.pw.value);
+      if (!u) return err(f, 'Login or password is incorrect.');
+      go(role);
+    });
+  });
+
+  fReg.addEventListener('submit', async function (e) {
+    e.preventDefault(); var f = e.target; err(f);
+    if (f.name.value.trim().length < 3) return err(f, 'Enter your full name.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.value)) return err(f, 'Enter a valid email.');
+    if (!/^(\+?234|0)[789]\d{9}$/.test(f.phone.value.replace(/[\s-]/g, ''))) return err(f, 'Enter a valid Nigerian phone number.');
+    if (f.pw.value.length < 8) return err(f, 'Password must be at least 8 characters.');
+    if (f.pw.value !== f.pw2.value) return err(f, 'Passwords do not match.');
+    var r = await A.registerParent(f.name.value, f.email.value, f.phone.value, f.pw.value);
+    if (r.error) return err(f, r.error);
+    go('parent');
+  });
+})();
+</script>
+</body>
+</html>
