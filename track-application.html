@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Application | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/forms.css">
+</head>
+<body>
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a href="index.html" class="brand"><img src="images/logo.svg" width="40" height="40" alt=""><span>BlueCrest<small>International Academy</small></span></a>
+    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button>
+    <nav id="menu" class="menu" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="admissions.html" class="on">Admissions</a>
+      <a href="student-portal.html">Student Portal</a>
+      <a href="parent-portal.html">Parent Portal</a>
+      <a href="index.html#contact">Contact Us</a>
+      <a href="login.html" class="btn btn-sm">Login</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-head"><div class="wrap"><h1>Track your application</h1><p>Enter your reference number and the parent phone number used when applying.</p></div></section>
+
+<main class="wrap form-wrap">
+  <form id="trackForm" class="card" novalidate>
+    <label>Reference number<input name="ref" placeholder="BIA-2026-123456" required autocapitalize="characters"></label>
+    <label>Parent phone number<input type="tel" name="phone" placeholder="08012345678" required></label>
+    <p class="msg" id="trackMsg" role="alert"></p>
+    <button class="btn" type="submit">Check status</button>
+  </form>
+
+  <section id="result" class="card success" hidden aria-live="polite"></section>
+</main>
+
+<footer class="foot"><p class="copy">© <span id="yr"></span> BlueCrest International Academy. All rights reserved.</p></footer>
+<script src="js/main.js"></script>
+<script src="js/store.js"></script>
+<script>
+(function () {
+  'use strict';
+  var f = document.getElementById('trackForm'), m = document.getElementById('trackMsg'), out = document.getElementById('result');
+  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  function when(i) { return new Date(i).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  var HELP = {
+    'Pending': 'We have received your application and will begin review soon.',
+    'Under Review': 'The admissions team is reviewing your application.',
+    'Approved': 'Congratulations. Please contact the school office to complete enrolment.',
+    'Rejected': 'We are sorry we cannot offer a place at this time.',
+    'More Information Needed': 'Please read the note below and contact the school office.'
+  };
+  f.addEventListener('submit', function (e) {
+    e.preventDefault(); out.hidden = true; m.className = 'msg'; m.textContent = '';
+    var ref = f.ref.value.trim(), phone = f.phone.value.trim();
+    if (!ref || !phone) { m.className = 'msg err'; m.textContent = 'Enter both the reference number and phone number.'; return; }
+    var a = BIA.store.find(ref, phone);
+    if (!a) { m.className = 'msg err'; m.textContent = 'No application matches those details. Check them and try again.'; return; }
+    var cls = 's-' + a.status.split(' ').slice(0, 2).join('-').replace('More-Information', 'More-Info').replace('Information-Needed', 'Info');
+    out.innerHTML = '<span class="badge ' + (a.status === 'More Information Needed' ? 's-More-Info' : 's-' + a.status.replace(' ', '-')) + '">' + esc(a.status) + '</span>' +
+      '<p style="margin-top:12px">' + esc(HELP[a.status]) + '</p>' +
+      (a.note ? '<p class="notice" style="margin-top:12px"><b>Note from admissions:</b> ' + esc(a.note) + '</p>' : '') +
+      '<div class="detail"><div><span>Reference</span>' + esc(a.ref) + '</div><div><span>Student</span>' + esc(a.studentName) + '</div>' +
+      '<div><span>Class</span>' + esc(a.classApplied) + '</div><div><span>Session</span>' + esc(a.session) + '</div>' +
+      '<div><span>Submitted</span>' + when(a.submitted) + '</div><div><span>Last updated</span>' + when(a.updated) + '</div></div>';
+    out.hidden = false;
+  });
+})();
+</script>
+</body>
+</html>
