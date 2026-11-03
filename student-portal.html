@@ -42,8 +42,10 @@
   var pf = [['Full name', s.name], ['Admission no.', s.admissionNo], ['Class', s.cls], ['Session', s.session], ['Gender', s.gender], ['Date of birth', new Date(s.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })]];
   $('pf').innerHTML = pf.map(function (x) { return '<div><span>' + x[0] + '</span>' + esc(x[1]) + '</div>'; }).join('');
 
-  var tiles = [['Results', 5], ['Timetable', 6], ['Syllabus', 6], ['Fees and payments', 4], ['Transport', 4], ['Assignments', 7], ['Learning materials', 7], ['Attendance', 7], ['School calendar', 7], ['Complaints', 8]];
-  $('tiles').innerHTML = tiles.map(function (t) { return '<div class="tile"><b>' + t[0] + '</b><small>Coming in Phase ' + t[1] + '</small></div>'; }).join('');
+  var tiles = [['Results', 5], ['Timetable', 6], ['Syllabus', 6], ['Fees and payments', 4, 'payments.html#fees'], ['Transport', 4, 'payments.html#transport'], ['Assignments', 7], ['Learning materials', 7], ['Attendance', 7], ['School calendar', 7], ['Complaints', 8]];
+  $('tiles').innerHTML = tiles.map(function (t) {
+    return t[2] ? '<a class="tile" style="opacity:1;text-decoration:none;color:inherit" href="' + t[2] + '"><b>' + t[0] + '</b><small>Open</small></a>' : '<div class="tile"><b>' + t[0] + '</b><small>Coming in Phase ' + t[1] + '</small></div>';
+  }).join('');
 
   function list(el, items) {
     $(el).innerHTML = items.length ? items.map(function (i) { return '<p style="margin-bottom:10px"><b>' + esc(i[0]) + '</b><br><small style="color:var(--mute)">' + esc(i[1]) + '</small></p>'; }).join('') : '<p class="empty">Nothing here yet.</p>';
