@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Results | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+select{display:block;width:100%;margin-top:5px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.sim{background:#FEF0C7;border:1px solid #F5C451;color:#7A4B00;border-radius:12px;padding:10px 14px;font-size:.88rem;margin-bottom:16px}
+.rcard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+.rh{display:flex;gap:12px;align-items:center;border-bottom:3px solid var(--b1);padding-bottom:12px;margin-bottom:14px}
+.rh h2{margin:0;font-size:1.25rem}.rh small{color:var(--mute)}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.meta span{display:block;color:var(--mute);font-size:.78rem}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:480px}
+th{background:var(--b4);color:#fff;text-align:left;padding:9px 8px;font-size:.82rem}
+td{padding:9px 8px;border-bottom:1px solid var(--line);font-size:.92rem}
+.gA,.gB{color:#067647;font-weight:700}.gC,.gD{color:#B54708;font-weight:700}.gE,.gF{color:#D92D20;font-weight:700}
+.sums{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}
+.sums div{background:var(--soft);border-radius:14px;padding:12px}.sums b{display:block;font-size:1.15rem}.sums span{font-size:.78rem;color:var(--mute)}
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:30px;font-size:.85rem;color:var(--mute)}
+.sig div{border-top:1px solid var(--ink);padding-top:6px}
+.key{font-size:.78rem;color:var(--mute);margin-top:14px}
+@media print{.top,.np{display:none!important}.dash{padding:0}.rcard{border:0;box-shadow:none;padding:0}th{background:#003BBD!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Results</a><span><a id="back" href="#" class="who" style="font-weight:500">Dashboard</a> <button type="button" id="out">Log out</button></span></div></header>
+
+<main class="wrap dash">
+  <div class="sim np">Sample results for demonstration. Real results are entered by teachers and published by the school.</div>
+  <div class="kids np" id="kids"></div>
+  <div class="card np" style="margin-bottom:16px"><label>Session and term<select id="pick"></select></label></div>
+  <div class="tabs np"><button type="button" data-t="ca">CA</button><button type="button" data-t="exam">Examination</button><button type="button" data-t="full" class="on">Complete term</button></div>
+  <section id="view"></section>
+  <p class="np" style="margin-top:16px"><button class="btn" id="print" type="button">Print or save as PDF</button></p>
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/results.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, R = BIA.results, cur = A.current();
+  if (!cur || (cur.role !== 'student' && cur.role !== 'parent')) { location.replace('login.html'); return; }
+  var kids = cur.role === 'student' ? [A.student(cur.loginId)] : A.children(cur.loginId);
+  var sel = kids[0] && kids[0].admissionNo, idx = 0, tab = 'full';
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  $('back').href = cur.role + '-portal.html'; $('out').onclick = A.logout; $('print').onclick = function () { window.print(); };
+
+  $('kids').onclick = function (e) { if (e.target.dataset.a) { sel = e.target.dataset.a; idx = 0; draw(); } };
+  $('pick').onchange = function () { idx = +this.value; draw(); };
+  document.querySelector('.tabs').onclick = function (e) { if (e.target.dataset.t) { tab = e.target.dataset.t; draw(); } };
+
+  function draw() {
+    $('kids').innerHTML = cur.role === 'parent' ? kids.map(function (k) { return '<button type="button" data-a="' + esc(k.admissionNo) + '" class="' + (k.admissionNo === sel ? 'on' : '') + '">' + esc(k.name) + '</button>'; }).join('') : '';
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === tab); });
+    if (!sel) { $('view').innerHTML = '<div class="card"><p class="empty">No children linked. Link a child from the parent dashboard first.</p></div>'; $('pick').innerHTML = ''; return; }
+    var recs = R.forStudent(sel);
+    $('pick').innerHTML = recs.map(function (r, i) { return '<option value="' + i + '"' + (i === idx ? ' selected' : '') + '>' + esc(r.session + ' · ' + r.term) + '</option>'; }).join('');
+    if (!recs.length) { $('view').innerHTML = '<div class="card"><p class="empty">No published results yet. You will be notified when results are released.</p></div>'; return; }
+    var rec = recs[idx] || recs[0], st = A.student(sel), cfg = R.cfg(), sm = R.summary(rec);
+    var head = '<th>Subject</th>' + (tab !== 'exam' ? '<th>CA /' + cfg.caMax + '</th>' : '') + (tab !== 'ca' ? '<th>Exam /' + cfg.examMax + '</th>' : '') + (tab === 'full' ? '<th>Total</th><th>Grade</th><th>Remark</th>' : '') + '<th>Teacher</th>';
+    var body = rec.rows.map(function (r) {
+      var t = r.ca + r.exam, g = R.grade(t);
+      return '<tr><td>' + esc(r.subject) + '</td>' + (tab !== 'exam' ? '<td>' + r.ca + '</td>' : '') + (tab !== 'ca' ? '<td>' + r.exam + '</td>' : '') +
+        (tab === 'full' ? '<td><b>' + t + '</b></td><td class="g' + g.g + '">' + g.g + '</td><td>' + esc(r.remark) + '</td>' : '') + '<td>' + esc(r.teacher) + '</td></tr>';
+    }).join('');
+    var full = tab === 'full';
+    $('view').innerHTML = '<div class="rcard"><div class="rh"><img src="images/logo.svg" width="48" height="48" alt=""><div><h2>BlueCrest International Academy</h2><small>Student report card · ' + (tab === 'ca' ? 'Continuous assessment' : tab === 'exam' ? 'Examination' : 'Complete term result') + '</small></div></div>' +
+      '<div class="meta"><div><span>Student</span>' + esc(st.name) + '</div><div><span>Admission no.</span>' + esc(st.admissionNo) + '</div><div><span>Class</span>' + esc(rec.cls) + '</div><div><span>Session</span>' + esc(rec.session) + '</div><div><span>Term</span>' + esc(rec.term) + '</div></div>' +
+      '<div class="scroll"><table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>' +
+      (full ? '<div class="sums"><div><b>' + sm.total + '</b><span>Total score</span></div><div><b>' + sm.avg + '%</b><span>Overall average</span></div><div><b class="g' + sm.grade + '">' + sm.grade + '</b><span>Overall grade</span></div>' +
+        (cfg.showPosition ? '<div><b>' + rec.position + ' of ' + rec.classSize + '</b><span>Position in class</span></div>' : '') + '</div>' +
+        '<p><b>Class teacher\'s remark:</b> ' + esc(rec.classRemark) + '</p><p style="margin-top:6px"><b>Principal\'s remark:</b> ' + esc(rec.principalRemark) + '</p>' : '') +
+      '<div class="sig"><div>Class teacher\'s signature</div><div>Principal\'s signature</div></div>' +
+      '<p class="key">Grading: ' + cfg.bands.map(function (b) { return b[1] + ' (' + b[0] + '+)'; }).join(', ') + '</p></div>';
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
