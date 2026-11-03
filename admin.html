@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard | BlueCrest International Academy</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+select,textarea{display:block;width:100%;margin-top:5px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.tabs{overflow-x:auto}.tabs button{flex:none;white-space:nowrap;padding:10px 16px}
+.tile.st{opacity:1}.tile.st b{font-size:1.25rem;display:block}.tile.st small{display:block;margin-bottom:4px}
+.act{padding:10px 0;border-bottom:1px solid var(--line)}.act small{display:block;color:var(--mute)}
+details{background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:10px;box-shadow:var(--shadow)}
+summary{padding:14px 16px;cursor:pointer;list-style:none}summary::-webkit-details-marker{display:none}
+summary small{display:block;color:var(--mute);margin-top:2px}
+.in{padding:0 16px 16px}
+.bd{display:inline-block;background:var(--soft);color:var(--b4);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-left:4px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:6px 0 12px}.kv span{display:block;color:var(--mute);font-size:.78rem}
+.msgtxt{white-space:pre-wrap;background:var(--soft);border-radius:12px;padding:12px;margin-bottom:12px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pg{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
+.pg button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font:600 .85rem system-ui,Arial,sans-serif;cursor:pointer}.pg button:disabled{opacity:.4}
+.danger{color:#D92D20;box-shadow:inset 0 0 0 2px #D92D20}
+.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:380px}
+th{background:var(--b4);color:#fff;text-align:left;padding:8px;font-size:.82rem}td{padding:8px;border-bottom:1px solid var(--line);font-size:.9rem}
+.gridg{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:12px}.chk input{width:auto;margin-top:5px}
+@media(max-width:560px){.kv,.cols2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Admin</a><span><span class="who" id="who"></span> <button type="button" id="out">Log out</button></span></div></header>
+<main class="wrap dash">
+  <div class="tabs" id="tabs"></div>
+  <section id="panel"></section>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/store.js"></script>
+<script src="js/results.js"></script>
+<script src="js/pay.js"></script>
+<script src="js/complaints.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/admin-core.js"></script>
+<script src="js/admin-more.js"></script>
+<script>
+(function () {
+  'use strict';
+  var cur = BIA.auth.require('admin'); if (!cur) return;
+  var S = BIA.admin.sections, id = (location.hash || '#overview').slice(1);
+  if (!S.some(function (s) { return s.id === id; })) id = 'overview';
+  function $(i) { return document.getElementById(i); }
+  $('who').textContent = cur.name; $('out').onclick = BIA.auth.logout;
+  function draw() {
+    $('tabs').innerHTML = S.map(function (s) { return '<button type="button" data-t="' + s.id + '" class="' + (s.id === id ? 'on' : '') + '">' + s.label + '</button>'; }).join('');
+    S.filter(function (s) { return s.id === id; })[0].render($('panel'));
+  }
+  $('tabs').onclick = function (e) { if (e.target.dataset.t) { id = e.target.dataset.t; history.replaceState(null, '', '#' + id); draw(); } };
+  draw();
+})();
+</script>
+</body>
+</html>
