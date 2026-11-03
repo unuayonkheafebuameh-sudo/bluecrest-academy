@@ -6,7 +6,12 @@
   var STUDENTS = [
     { admissionNo: 'BIA/2026/001', name: 'Chinedu Okafor', cls: 'JSS 2', session: '2026/2027', dob: '2012-03-14', gender: 'Male' },
     { admissionNo: 'BIA/2026/002', name: 'Amaka Okafor', cls: 'Primary 5', session: '2026/2027', dob: '2015-08-02', gender: 'Female' },
-    { admissionNo: 'BIA/2026/003', name: 'Tunde Bello', cls: 'SSS 2', session: '2026/2027', dob: '2009-11-21', gender: 'Male' }
+    { admissionNo: 'BIA/2026/003', name: 'Tunde Bello', cls: 'SSS 2', session: '2026/2027', dob: '2009-11-21', gender: 'Male' },
+    { admissionNo: 'BIA/2026/004', name: 'Ngozi Eze', cls: 'JSS 2', session: '2026/2027', dob: '2012-06-09', gender: 'Female' },
+    { admissionNo: 'BIA/2026/005', name: 'Ibrahim Musa', cls: 'JSS 2', session: '2026/2027', dob: '2012-01-27', gender: 'Male' }
+  ];
+  var TEACHERS = [
+    { loginId: 'teacher@demo.com', name: 'Mrs. Adebayo', assign: [['JSS 2', 'English Language'], ['JSS 2', 'Mathematics'], ['SSS 2', 'Mathematics']] }
   ];
 
   function all() { try { return JSON.parse(localStorage.getItem(U)) || []; } catch (e) { return []; } }
@@ -20,12 +25,15 @@
     return 'x' + btoa('bia:' + p);
   }
 
+  /* Adds any missing demo accounts, so older saved data keeps working. */
   var ready = (async function () {
-    if (all().length) return;
-    var l = [], h = await hash('student123');
-    STUDENTS.forEach(function (s) { l.push({ role: 'student', loginId: s.admissionNo, name: s.name, hash: h, children: [] }); });
-    l.push({ role: 'parent', loginId: 'parent@demo.com', name: 'Mrs. Okafor', phone: '', hash: await hash('parent123'), children: ['BIA/2026/001', 'BIA/2026/002'] });
-    put(l);
+    var l = all(), changed = false;
+    function has(id) { return l.some(function (x) { return x.loginId.toLowerCase() === id.toLowerCase(); }); }
+    var hs = await hash('student123'), hp = await hash('parent123'), ht = await hash('teacher123');
+    STUDENTS.forEach(function (s) { if (!has(s.admissionNo)) { l.push({ role: 'student', loginId: s.admissionNo, name: s.name, hash: hs, children: [] }); changed = true; } });
+    if (!has('parent@demo.com')) { l.push({ role: 'parent', loginId: 'parent@demo.com', name: 'Mrs. Okafor', phone: '', hash: hp, children: ['BIA/2026/001', 'BIA/2026/002'] }); changed = true; }
+    TEACHERS.forEach(function (t) { if (!has(t.loginId)) { l.push({ role: 'teacher', loginId: t.loginId, name: t.name, hash: ht, children: [] }); changed = true; } });
+    if (changed) put(l);
   })();
 
   function setSession(u) { sessionStorage.setItem(S, JSON.stringify({ role: u.role, loginId: u.loginId, name: u.name, t: Date.now() })); }
@@ -56,11 +64,16 @@
     },
     require: function (role) {
       var c = Auth.current();
-      if (!c || c.role !== role) { location.replace('login.html?role=' + role); return null; }
+      if (!c || c.role !== role) { location.replace(role === 'teacher' ? 'teacher-login.html' : 'login.html?role=' + role); return null; }
       return c;
     },
-    logout: function () { sessionStorage.removeItem(S); location.replace('login.html'); },
+    logout: function () {
+      var c = Auth.current(); sessionStorage.removeItem(S);
+      location.replace(c && c.role === 'teacher' ? 'teacher-login.html' : 'login.html');
+    },
     student: function (adm) { return STUDENTS.filter(function (s) { return s.admissionNo === adm; })[0] || null; },
+    studentsIn: function (cls) { return STUDENTS.filter(function (s) { return s.cls === cls; }); },
+    teacher: function (loginId) { var t = TEACHERS.filter(function (x) { return x.loginId === loginId; })[0]; return t ? t.assign : []; },
     children: function (loginId) {
       var u = all().filter(function (x) { return x.loginId === loginId; })[0];
       return u ? u.children.map(Auth.student).filter(Boolean) : [];
