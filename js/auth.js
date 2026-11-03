@@ -29,14 +29,16 @@
   var ready = (async function () {
     var l = all(), changed = false;
     function has(id) { return l.some(function (x) { return x.loginId.toLowerCase() === id.toLowerCase(); }); }
-    var hs = await hash('student123'), hp = await hash('parent123'), ht = await hash('teacher123');
+    var hs = await hash('student123'), hp = await hash('parent123'), ht = await hash('teacher123'), ha = await hash('admin123');
     STUDENTS.forEach(function (s) { if (!has(s.admissionNo)) { l.push({ role: 'student', loginId: s.admissionNo, name: s.name, hash: hs, children: [] }); changed = true; } });
     if (!has('parent@demo.com')) { l.push({ role: 'parent', loginId: 'parent@demo.com', name: 'Mrs. Okafor', phone: '', hash: hp, children: ['BIA/2026/001', 'BIA/2026/002'] }); changed = true; }
     TEACHERS.forEach(function (t) { if (!has(t.loginId)) { l.push({ role: 'teacher', loginId: t.loginId, name: t.name, hash: ht, children: [] }); changed = true; } });
+    if (!has('admin@bia.demo')) { l.push({ role: 'admin', loginId: 'admin@bia.demo', name: 'School Administrator', hash: ha, children: [] }); changed = true; }
     if (changed) put(l);
   })();
 
   function setSession(u) { sessionStorage.setItem(S, JSON.stringify({ role: u.role, loginId: u.loginId, name: u.name, t: Date.now() })); }
+  function loginPage(role) { return role === 'teacher' ? 'teacher-login.html' : role === 'admin' ? 'admin-login.html' : 'login.html?role=' + role; }
 
   var Auth = {
     login: async function (role, id, pw) {
@@ -64,16 +66,21 @@
     },
     require: function (role) {
       var c = Auth.current();
-      if (!c || c.role !== role) { location.replace(role === 'teacher' ? 'teacher-login.html' : 'login.html?role=' + role); return null; }
+      if (!c || c.role !== role) { location.replace(loginPage(role)); return null; }
       return c;
     },
     logout: function () {
       var c = Auth.current(); sessionStorage.removeItem(S);
-      location.replace(c && c.role === 'teacher' ? 'teacher-login.html' : 'login.html');
+      location.replace(c ? loginPage(c.role).split('?')[0] : 'login.html');
     },
     student: function (adm) { return STUDENTS.filter(function (s) { return s.admissionNo === adm; })[0] || null; },
     studentsIn: function (cls) { return STUDENTS.filter(function (s) { return s.cls === cls; }); },
+    allStudents: function () { return STUDENTS.slice(); },
     teacher: function (loginId) { var t = TEACHERS.filter(function (x) { return x.loginId === loginId; })[0]; return t ? t.assign : []; },
+    /* Account lists for the admin dashboard (never includes passwords). */
+    users: function (role) {
+      return all().filter(function (x) { return x.role === role; }).map(function (x) { return { loginId: x.loginId, name: x.name, phone: x.phone || '', children: x.children }; });
+    },
     children: function (loginId) {
       var u = all().filter(function (x) { return x.loginId === loginId; })[0];
       return u ? u.children.map(Auth.student).filter(Boolean) : [];
