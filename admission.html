@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply Online | BlueCrest International Academy</title>
+<meta name="description" content="Apply to BlueCrest International Academy online. Get a reference number and track your application.">
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/forms.css">
+</head>
+<body>
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a href="index.html" class="brand"><img src="images/logo.svg" width="40" height="40" alt=""><span>BlueCrest<small>International Academy</small></span></a>
+    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button>
+    <nav id="menu" class="menu" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="index.html#about">About Us</a>
+      <a href="index.html#academics">Academics</a>
+      <a href="admissions.html" class="on">Admissions</a>
+      <a href="student-portal.html">Student Portal</a>
+      <a href="parent-portal.html">Parent Portal</a>
+      <a href="index.html#news">School News</a>
+      <a href="index.html#contact">Contact Us</a>
+      <a href="login.html" class="btn btn-sm">Login</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-head"><div class="wrap">
+  <h1>Apply to BlueCrest</h1>
+  <p>Complete all sections. Already applied? <a href="track-application.html" style="color:#fff">Track your application</a>.</p>
+</div></section>
+
+<main class="wrap form-wrap">
+  <div class="notice no-print">Demo mode: applications are saved in this browser only, and uploaded files are checked but not stored yet. Real storage is added in Phase 10.</div>
+
+  <form id="appForm" novalidate>
+    <fieldset>
+      <legend>Student information</legend>
+      <label>Full name<input name="studentName" required autocomplete="off"><span class="err"></span></label>
+      <div class="cols">
+        <label>Date of birth<input type="date" name="dob" required><span class="err"></span></label>
+        <label>Gender<select name="gender" required><option value="">Select</option><option>Female</option><option>Male</option></select><span class="err"></span></label>
+        <label>Class applying for<select name="classApplied" required><option value="">Select</option>
+          <option>Primary 1</option><option>Primary 2</option><option>Primary 3</option><option>Primary 4</option><option>Primary 5</option><option>Primary 6</option>
+          <option>JSS 1</option><option>JSS 2</option><option>JSS 3</option><option>SSS 1</option><option>SSS 2</option><option>SSS 3</option></select><span class="err"></span></label>
+        <label>Academic session<select name="session" required><option value="">Select</option><option>2026/2027</option><option>2027/2028</option></select><span class="err"></span></label>
+      </div>
+      <label>Previous school <span class="hint">(if any)</span><input name="previousSchool"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Parent or guardian</legend>
+      <div class="cols">
+        <label>Full name<input name="parentName" required autocomplete="name"><span class="err"></span></label>
+        <label>Relationship<select name="relationship" required><option value="">Select</option><option>Mother</option><option>Father</option><option>Guardian</option></select><span class="err"></span></label>
+        <label>Phone number<input type="tel" name="parentPhone" required placeholder="08012345678" autocomplete="tel"><span class="err"></span></label>
+        <label>Email address<input type="email" name="parentEmail" required autocomplete="email"><span class="err"></span></label>
+      </div>
+      <label>Residential address<textarea name="address" rows="2" required></textarea><span class="err"></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Emergency and medical</legend>
+      <div class="cols">
+        <label>Emergency contact name<input name="emName" required><span class="err"></span></label>
+        <label>Emergency contact phone<input type="tel" name="emPhone" required><span class="err"></span></label>
+      </div>
+      <label>Medical conditions or allergies <span class="hint">(write "None" if none)</span><textarea name="medical" rows="2" required></textarea><span class="err"></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Uploads</legend>
+      <label>Passport photograph <span class="hint">JPG, PNG or WebP, up to 2 MB</span><input type="file" name="photo" id="photo" accept="image/jpeg,image/png,image/webp" required><span class="err"></span></label>
+      <img id="prev" class="photo-prev" alt="Passport preview">
+      <label>Documents <span class="hint">Birth certificate, last report card. PDF, JPG or PNG, up to 5 MB each, max 5 files</span><input type="file" name="docs" id="docs" accept="application/pdf,image/jpeg,image/png" multiple><span class="err"></span></label>
+    </fieldset>
+
+    <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" name="agree" required style="width:auto;margin-top:5px"><span>I confirm the information given is correct.</span></label>
+    <span class="err" id="agreeErr"></span>
+    <p class="msg" id="formMsg" role="alert"></p>
+    <button class="btn" type="submit">Submit application</button>
+  </form>
+
+  <section id="done" class="card success" hidden>
+    <div class="tick">✓</div>
+    <h2>Application received</h2>
+    <p>Keep your reference number. You need it, with your phone number, to track the application.</p>
+    <div class="refbox" id="refOut"></div>
+    <div class="row" style="justify-content:center">
+      <button class="btn btn-ghost no-print" id="copyRef" type="button">Copy reference</button>
+      <button class="btn btn-ghost no-print" onclick="window.print()" type="button">Print slip</button>
+      <a class="btn no-print" href="track-application.html">Track application</a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot"><p class="copy">© <span id="yr"></span> BlueCrest International Academy. All rights reserved.</p></footer>
+<script src="js/main.js"></script>
+<script src="js/store.js"></script>
+<script src="js/admissions.js"></script>
+</body>
+</html>
