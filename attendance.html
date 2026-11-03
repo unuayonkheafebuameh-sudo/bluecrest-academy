@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attendance | BlueCrest International Academy</title>
+<meta name="theme-color" content="#0057FF">
+<link rel="icon" href="images/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/portal.css">
+<style>
+.sums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.sums div{background:var(--soft);border-radius:14px;padding:12px}.sums b{display:block;font-size:1.2rem}.sums span{font-size:.78rem;color:var(--mute)}
+.alert{background:#FEF3F2;border:1px solid #FDA29B;color:#912018;border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:.9rem}
+.rw{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.P{color:#067647;font-weight:700}.A{color:#D92D20;font-weight:700}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in"><a href="index.html">BIA Attendance</a><span><a id="back" href="#" class="who" style="font-weight:500">Dashboard</a> <button type="button" id="out">Log out</button></span></div></header>
+<main class="wrap dash">
+  <div class="kids" id="kids"></div>
+  <section class="card" id="view"></section>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/school.js"></script>
+<script>
+(function () {
+  'use strict';
+  var A = BIA.auth, S = BIA.school, cur = A.current();
+  if (!cur || (cur.role !== 'student' && cur.role !== 'parent')) { location.replace('login.html'); return; }
+  var kids = cur.role === 'student' ? [A.student(cur.loginId)] : A.children(cur.loginId), sel = kids[0] && kids[0].admissionNo;
+  function $(i) { return document.getElementById(i); }
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  function dt(i) { return new Date(i).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); }
+  $('back').href = cur.role + '-portal.html'; $('out').onclick = A.logout;
+  $('kids').onclick = function (e) { if (e.target.dataset.a) { sel = e.target.dataset.a; draw(); } };
+  function draw() {
+    $('kids').innerHTML = cur.role === 'parent' ? kids.map(function (k) { return '<button type="button" data-a="' + esc(k.admissionNo) + '" class="' + (k.admissionNo === sel ? 'on' : '') + '">' + esc(k.name) + '</button>'; }).join('') : '';
+    if (!sel) { $('view').innerHTML = '<p class="empty">No children linked. Link a child from the parent dashboard first.</p>'; return; }
+    var rec = S.attFor(sel), notes = S.notesFor(sel).slice(0, 3), p = rec.filter(function (r) { return r.status === 'P'; }).length, a = rec.length - p;
+    $('view').innerHTML = '<h3>' + esc(A.student(sel).name) + '</h3>' +
+      (cur.role === 'parent' ? notes.map(function (n) { return '<div class="alert"><b>Absence alert:</b> ' + esc(n.text) + '</div>'; }).join('') : '') +
+      '<div class="sums"><div><b>' + p + '</b><span>Days present</span></div><div><b>' + a + '</b><span>Days absent</span></div><div><b>' + (rec.length ? Math.round(p / rec.length * 100) + '%' : '–') + '</b><span>Attendance</span></div></div>' +
+      (rec.length ? rec.slice(0, 40).map(function (r) { return '<div class="rw"><span>' + dt(r.date) + '</span><span class="' + r.status + '">' + (r.status === 'P' ? 'Present' : 'Absent') + '</span></div>'; }).join('') : '<p class="empty">No attendance recorded yet. Records appear after your teacher takes the register.</p>');
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
